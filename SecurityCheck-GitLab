@@ -1,0 +1,174 @@
+# 🛡️ GitLab Security Standard v1.0
+
+**Version:** 1.0  
+**Applicable To:** All internal teams using GitLab SaaS or Self-Managed for source code, CI/CD, automation, registry, documentation, and artifacts.
+
+**Scope:**  
+- GitLab Repositories  
+- GitLab CI/CD Runners  
+- Container / Package Registries (npm, PyPI, Maven, NuGet)  
+- Secrets / Variables  
+- Service Accounts / Access Tokens  
+- Integrations (Cloud, Jira, Vault, etc.)
+
+---
+
+## 🎯 Objective
+
+To secure GitLab source code, CI/CD pipelines, packages, deployments, and cloud integrations against unauthorized access, supply-chain compromise, secrets leakage, and malicious builds.
+
+---
+
+## 🔐 1. Authentication & SSO Policy
+
+| Requirement | Standard |
+|-------------|----------|
+| Identity | All users must authenticate with **SSO (SAML/OIDC)** using corporate IdP. |
+| MFA enforcement | Multi-Factor Authentication required for all users. |
+| Local GitLab accounts | Prohibited unless explicitly approved for break-glass. |
+| Offboarding | All access revoked within **4 hours** of HR notification. |
+
+---
+
+## 🔑 2. Access Control & Least Privilege
+
+| Requirement | Standard |
+|-------------|----------|
+| Group access | Access granted via **Groups/Subgroups**, not individuals. |
+| Minimum role | Default role = **Reporter (read-only)** unless justified. |
+| Maintainer/Admin | Restricted to business-justified users with periodic review. |
+| External users | Must expire automatically every **90 days** unless renewed. |
+| Protected environments | Only Maintainers + deploy approvers can trigger deploys. |
+
+---
+
+## 🔐 3. Token, Credential & Secret Policy
+
+| Requirement | Standard |
+|-------------|----------|
+| Personal Access Tokens (PATs) | Only **scoped & time-limited** PATs allowed. Max lifetime: **7 days**. |
+| CI/CD tokens | Prefer **short-lived Job Tokens** or GitLab Deploy Tokens. |
+| Secret storage | Store all credentials in **GitLab Protected Variables** or **Vault integration**. |
+| No static cloud keys | CI must use **OIDC workload identity** for AWS/GCP/Azure. |
+| Rotation | Quarterly review & rotation of all manually created secrets. |
+
+---
+
+## ⚙️ 4. CI/CD Pipeline Security
+
+| Requirement | Standard |
+|-------------|----------|
+| Runner isolation | Shared runners must not deploy to production; restricted runners required. |
+| Runner identity | Each runner must use a unique identity + scoped permissions. |
+| OIDC for cloud | Pipelines must use OIDC federation for cloud deployments, not credentials. |
+| Approval gate | Production deployments require **Manual Approvals + Protected Environment**. |
+| Pipeline provenance | All pipelines must log job hash, images, and artifacts for traceability. |
+
+---
+
+## 🧰 5. Runner Hardening (Self-Hosted)
+
+| Requirement | Standard |
+|-------------|----------|
+| Operating model | Runners must be isolated per environment (`dev`, `stage`, `prod`). |
+| Privilege | Do not use privileged mode unless explicitly required and approved. |
+| Network | Runners must run on isolated networks with restricted outbound traffic. |
+| Secrets | No credentials stored on runner machines; only environment-injected. |
+| Logging | Runner logs must be forwarded to SIEM (Splunk, Sentinel, Elastic, etc.). |
+
+---
+
+## 📦 6. Supply Chain Security (npm / pip / Maven / Images)
+
+| Requirement | Standard |
+|-------------|----------|
+| Registry access | Must use internal GitLab Package/Container Registry or vetted proxy. |
+| Version lock | All builds must use lockfiles (`package-lock.json`, `requirements.txt`, etc.). |
+| Install policy | CI must use: `npm ci --ignore-scripts` or equivalent safe install. |
+| Script restrictions | `preinstall`, `postinstall`, `install` scripts prohibited unless approved. |
+| SCA scanning | Software Composition Analysis (SCA) required on **every Merge Request**. |
+| Image scanning | All images must be scanned via **Container Scanning + Dependency Scanning**. |
+
+---
+
+## 🔒 7. Repository & Branch Protection
+
+| Requirement | Standard |
+|-------------|----------|
+| Protected branches | `main`, `master`, `release/*`, and production branches must be protected. |
+| Merge restrictions | Direct commits to protected branches prohibited; Merge Requests only. |
+| Approvals | At least **1–2 approvals**; critical repos require CODEOWNERS approval. |
+| Status checks | All SAST, SCA, Secrets, IaC, and DAST checks must pass before merge. |
+| Tag protection | Release tags must be protected from unauthorized creation or deletion. |
+
+---
+
+## 🔑 8. Secret & Sensitive Data Protection
+
+| Requirement | Standard |
+|-------------|----------|
+| Prohibited storage | No secrets in repos, pipelines YAML, Dockerfiles, config files, or logs. |
+| Secret scanning | Must enable **GitLab Secret Detection** for all repos. |
+| Vault integration | High-sensitivity secrets must be stored in **HashiCorp Vault** or CSP Secret Manager. |
+| Protected variables | Variables containing credentials must be **protected + masked + environment scoped**. |
+
+---
+
+## 📊 9. Logging, Monitoring & Audit
+
+| Requirement | Standard |
+|-------------|----------|
+| Audit logging | Must enable Audit Events at Group/Org level. |
+| Log forwarding | Logs must sync to SIEM (Splunk/Sentinel/Elastic). |
+| Required alerts |  
+- New PAT creation  
+- New admin/maintainer role  
+- Runner registration  
+- Protected branch change  
+- Pipeline edited in critical projects |
+| Incident SLA | Security violations must be triaged within **24 hours**. |
+| Forensic retention | Audit logs retained for **minimum 1 year**. |
+
+---
+
+## 🔍 10. Continuous Compliance & Review
+
+| Requirement | Standard |
+|-------------|----------|
+| Quarterly review | User roles, external users, service accounts, tokens, protected branches. |
+| Annual audit | Runner security, secret management, supply chain dependencies, registries. |
+| Policy update | Reviewed annually by Security Leadership. |
+| Enforcement | Non-compliance may result in job cancellation, repo lock, or role removal. |
+
+---
+
+## 📄 Appendices
+
+### 📌 A. Enforcement Priorities
+
+| Priority | Controls |
+|----------|----------|
+| **P1 (Immediate)** | SSO + MFA, PAT restrictions, protected branches, secret scanning |
+| **P2 (30 Days)** | OIDC cloud auth, registry restrictions, runner isolation |
+| **P3 (Quarterly)** | Zero-trust runners, artifact signing, image provenance |
+
+---
+
+### 📌 B. Approved Security Tools
+
+| Category | Approved Tools |
+|----------|----------------|
+| SAST | GitLab SAST, Semgrep |
+| SCA | GitLab Dependency Scanning, Trivy, Mend |
+| Secrets | GitLab Secret Detection, Gitleaks |
+| IaC Scanning | GitLab IaC Scanning, Checkov, Terrascan |
+| Container Scanning | GitLab Container Scanning, Trivy |
+| DAST | GitLab DAST, OWASP ZAProxy |
+
+---
+
+### 📌 C. Enforcement Clause
+
+> Failure to comply with this GitLab Security Standard may result in revocation of repository access, removal of administrative privileges, or suspension of affected pipelines and deployments until remediation is completed.
+
+---
