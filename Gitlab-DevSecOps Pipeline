@@ -1,0 +1,62 @@
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             DEVELOPER IDE (SHIFT-LEFT)                     │
+│                                                                             │
+│ Security baked into IDE:                                                    │
+│  • Pre-commit hooks (gitleaks, linters)                                    │
+│  • IDE SAST plugins (SonarLint / local CodeQL / Semgrep)                   │
+│  • Local dependency checks (mvn dependency-check / npm audit)              │
+│  • Avoid secrets in code — use GitLab CI variables or Vault via OIDC       │
+│  • Secure starter templates / secure boilerplate (Spring secure defaults)  │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ push / merge request (MR)
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                    CI (GitLab CI)                           │
+│                          (build → test → scans → artifact)                 │
+│                                                                             │
+│ Security jobs in CI:                                                        │
+│  • Build & unit tests (mvn/gradle/npm)                                      │
+│  • SAST (GitLab SAST or CodeQL / Semgrep)                                   │
+│  • Dependency / SCA scanning (GitLab Dependency Scanning / Snyk)           │
+│  • Secret detection (GitLab Secret Detection / gitleaks)                   │
+│  • Container build (GitLab Runner / Docker-in-Docker or Kaniko)            │
+│  • Container scanning (GitLab Container Scanning / Trivy)                  │
+│  • DAST (optional, runs against staging app)                                │
+│  • SBOM generation (Syft / CycloneDX)                                      │
+│  • IaC scanning (Checkov / tfsec)                                          │
+│  • Upload artifacts (jar, sbom) & push image to GitLab Container Registry   │
+│                                                                             │
+│  → CI OUTPUT: hardened image/artifact, SBOM, vulnerability reports          │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ push image + manifest to registry
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                                    CD                                       │
+│                       (deploy: pre-deploy checks → deploy → post-deploy)   │
+│                                                                             │
+│ Security steps in CD:                                                       │
+│  • Artifact/Image provenance verification (cosign / sigstore verify)       │
+│  • Policy-as-code enforcement (OPA/Gatekeeper / Kyverno via CI or k8s)     │
+│  • Protected environments & required approvals (GitLab Environments)       │
+│  • Secrets injection: GitLab CI variables or Vault integration (OIDC)      │
+│  • GitLab Agent for Kubernetes / ArgoCD (GitOps) / Helm with signed charts │
+│  • Feature flags & canary rollout (gradual exposure)                       │
+│  • IaC drift detection & post-deploy IaC scan                              │
+│  • RBAC & network policy application on deploy                              │
+│                                                                             │
+│  → CD OUTPUT: validated deployment in staging / production (gated)         │
+└───────────────────────────────┬─────────────────────────────────────────────┘
+                                │ running workloads
+                                ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                               RUNTIME SECURITY                              │
+│                                                                             │
+│ Runtime protections:                                                        │
+│  • Admission controllers (PSP/PSA replacement, Kyverno/Gatekeeper)         │
+│  • Runtime detection (Falco/eBPF, runtime scanning)                        │
+│  • Container image policy enforcement (only signed images)                 │
+│  • Network policies (CNI: Calico, Cilium) & mTLS between services           │
+│  • Secrets management (Vault Agent Injector / CSI Secrets Store)           │
+│  • Continuous vulnerability monitoring (Trivy Operator / scanning)         │
+│  • Logging/Tracing → ELK/Fluentd / Prometheus metrics + SIEM alerting      │
+└─────────────────────────────────────────────────────────────────────────────┘
