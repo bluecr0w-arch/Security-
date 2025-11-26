@@ -1,0 +1,174 @@
+# 🌎 GCP Security Standard v1.0
+
+**Version:** 1.0  
+**Applicable To:** All teams using Google Cloud Platform (GCP) for workloads, data, APIs, hosting, storage, CI/CD, or service accounts.  
+
+**Scope:**  
+- IAM & Identity Federation  
+- Compute (GKE, GCE, Cloud Run, App Engine)  
+- Storage (GCS, Filestore)  
+- Networking & Firewalls  
+- Cloud Build / Cloud Deploy  
+- Secrets & Keys  
+- Logging, Monitoring, Data Security  
+
+---
+
+## 🎯 Objective
+
+To ensure secure deployment, management, and scaling of cloud workloads while protecting identities, data, supply chain artifacts, keys, and network infrastructure from unauthorized access and compromise.
+
+---
+
+## 🔐 1. Identity & Authentication (SSO / MFA / Workload Identity)
+
+| Requirement | Standard |
+|-------------|----------|
+| User identity | Must use **SSO via Google Workspace / Entra / Okta**; no personal gmail accounts. |
+| MFA enforcement | Mandatory for all users with GCP access. |
+| Service accounts | Must not be used for human access. |
+| Workload identity | Must use **Workload Identity Federation** instead of static keys. |
+| Keyless auth | CI/CD tools must authenticate via **OIDC Federation**, not key files. |
+
+---
+
+## 🔑 2. IAM & Least-Privilege Access
+
+| Requirement | Standard |
+|-------------|----------|
+| Role policy | Only predefined least-privilege roles allowed (no `Owner`, no custom wide roles). |
+| User roles | Must be granted via Google Workspace groups, not individuals. |
+| Service accounts | Must be scoped to a single workload & environment. |
+| Admins | Restricted to **≤ 5 central cloud security administrators**. |
+| External users | Approved only by Security + Expire every **90 days**. |
+
+---
+
+## 🔒 3. Key Management, Secrets, and Access Credentials
+
+| Requirement | Standard |
+|-------------|----------|
+| Secret storage | All passwords, keys, tokens, API secrets must be stored in **Secret Manager**. |
+| Key rotation | Automatic rotation required for CMKs + manual yearly review. |
+| Key usage logs | KMS CryptoKey access logs must be forwarded to SIEM. |
+| No static keys | Prohibited for CI/CD pipelines and deployed workloads. |
+| OAuth credentials | Must enforce least scopes, short lifetime tokens, and IP restrictions. |
+
+---
+
+## 🛡 4. Network & Firewall Security
+
+| Requirement | Standard |
+|-------------|----------|
+| Default networks | Default VPCs must be deleted; no public ingress. |
+| Firewall | Explicit allow rules; deny by default. |
+| External access | Public IPs prohibited for workloads unless approved. |
+| Private access | Use Private Google Access for GCR, API, Artifact calls. |
+| Encryption in transit | Must use TLS 1.2+; internal services use mTLS when supported. |
+
+---
+
+## 📦 5. Supply Chain Security (Artifacts, AI Models, Containers, CI/CD)
+
+| Requirement | Standard |
+|-------------|----------|
+| Artifact registry | Only **Artifact Registry** or approved private registries allowed. |
+| Image scanning | Mandatory vulnerability scan for each deploy (Container Analysis/Scanner). |
+| Build provenance | Must use **SLSA-compliant Cloud Build provenance**. |
+| npm/pip security | Internet registry access must go via private mirror/proxy. |
+| AI/ML models | Stored in isolated secured storage with private network. |
+
+---
+
+## ⚙️ 6. Compute & Workload Security
+
+| Requirement | Standard |
+|-------------|----------|
+| GKE | Must use Workload Identity, Pod-level IAM, and Node Auto-Upgrade. |
+| Cloud Run | Must run as dedicated service account, no root privileges. |
+| VM security | Must enforce OS patching, Shielded VM & secure boot. |
+| App Engine | Must use identity-aware firewall + private networking. |
+| Data access | Workloads must not use keys; only OIDC + IAM bindings. |
+
+---
+
+## 🔑 7. Secrets & Environment Variables (Prod Workloads)
+
+| Requirement | Standard |
+|-------------|----------|
+| Secrets | Must not be stored in Cloud Build YAML, Dockerfiles, Terraform, or source code. |
+| Runtime retrieval | Only via Secret Manager & workload identity. |
+| Rotations | Business critical secrets rotated every **90 days**. |
+| Exposure monitoring | Secret access logs must alert on unusual access patterns. |
+
+---
+
+## 🧪 8. Logging, Monitoring, & Security Command Center
+
+| Requirement | Standard |
+|-------------|----------|
+| Audit logs | Must be enabled org-wide (Admin, Data, Access logs). |
+| Log retention | Minimum retention = **1 year**. |
+| SCC | Security Command Center (SCC) must be enabled at **Enterprise level**. |
+| Alerting required for |  
+- IAM changes  
+- Key usage  
+- New external IPs  
+- Firewall rule changes  
+- Secret access anomalous requests |
+| SIEM | Logs must be streamed to central SIEM (Splunk/Sentinel/Elastic). |
+
+---
+
+## 🚨 9. Data Security & Storage
+
+| Requirement | Standard |
+|-------------|----------|
+| Default encryption | Must use Google-managed encryption or CMEK when sensitive. |
+| Bucket policies | Public access disabled org-wide; required uniform bucket-level access. |
+| Sensitive buckets | Must enforce VPC Service Controls + Access Justification. |
+| Object versioning | Must be enabled for sensitive storage. |
+
+---
+
+## 🔍 10. Governance, Audits, and Continuous Compliance
+
+| Requirement | Standard |
+|-------------|----------|
+| Quarterly review | IAM roles, service accounts, keys, firewall rules. |
+| Annual audit | Workload identity, data sensitivity, pipeline security. |
+| Policy review | Updated annually by Security Leadership. |
+| Enforcement | Non-compliant workloads may be disabled or blocked from deployment. |
+
+---
+
+## 📄 Appendices
+
+### 📌 A. Enforcement Priorities
+
+| Priority | Controls |
+|----------|----------|
+| **P1 (Immediate)** | SSO + MFA, Delete default networks, Secret Manager usage |
+| **P2 (30 Days)** | Workload identity, private registry, SCC enablement |
+| **P3 (Quarterly)** | SIEM streaming, artifact signing, VPC service controls |
+
+---
+
+### 📌 B. Approved Security Tools
+
+| Function | Tools |
+|----------|-------|
+| CI/CD Provenance | Cloud Build + SLSA |
+| Container Scanning | Container Analysis, Artifact Scanner |
+| Secrets | Secret Manager |
+| IAM Review | IAM Recommender |
+| FinOps + Audit | SCC, Forseti, Cloud Asset Inventory |
+| IaC Scanning | Terraform Validator, Checkov, Polaris |
+
+---
+
+### 📌 C. Enforcement Clause
+
+> Failure to comply with this GCP Security Standard may result in suspension of impacted workloads, revocation of privileged access, or denial of deployments until required remediation is completed.
+
+---
