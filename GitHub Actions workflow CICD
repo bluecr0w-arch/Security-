@@ -1,0 +1,37 @@
+CI (automated, triggered by push/PR):
+
+Build (mvn package)
+
+Unit tests
+
+SAST: CodeQL, Semgrep
+
+SCA: Snyk / Dependabot (visible in pipeline)
+
+Secret scan: Gitleaks
+
+SBOM generation (syft)
+
+Container build
+
+Container vulnerability scan (Trivy)
+
+Publish artifact/image to registry
+
+Sign artifact (Cosign)
+
+CD (pre-deploy checks + deployment):
+
+Download SBOM & verify provenance
+
+Verify image signature (Cosign verify)
+
+Policy-as-code checks (OPA/Gatekeeper/Kyverno) against manifests
+
+Secrets injection from Vault (via OIDC)
+
+GitOps/ArgoCD or kubectl-based deploy
+
+Environment gating (GitHub environment protections → manual approvals)
+
+Post-deploy smoke tests and registration
