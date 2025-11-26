@@ -1,0 +1,236 @@
+A practical reference for secure software delivery using GitHub, CI/CD, and cloud-native environments.
+
+## 1. Developer IDE (Shift-Left Security)
+🔐 Security Actions
+
+Pre-commit hooks (secret scanning, linting, SAST-lite)
+
+IDE security plugins
+
+Snyk, SonarLint, GitHub Advanced Security extension
+
+Dependency safety checks
+
+mvn dependency-check
+
+npm audit
+
+Secure coding templates
+
+Pre-enabled Spring Security, CSP headers, input validation
+
+📄 Example Pre-Commit Hook
+- repo: https://github.com/zricethezav/gitleaks
+  rev: v8.18.0
+  hooks:
+    - id: gitleaks
+
+## 2. GitHub Repository Security
+🔒 Essential Controls
+
+Branch protection rules
+
+Require PR reviews
+
+Require passing SAST/SCA checks
+
+Require signed commits
+
+Secret scanning (GHAS)
+
+Dependabot for automated upgrades
+
+Restrict token scopes (repo-only, 7-day expiry)
+
+✔️ Branch Protection Example
+main branch:
+  - 1 mandatory reviewer
+  - Required checks: Build, SAST, Dependency-Scan
+  - Signed commits: enabled
+
+## 3. GitHub Actions CI Pipeline (Build → SAST → SCA → Testing)
+🏗️ Pipeline Flow
+
+Build
+
+SAST (CodeQL/Semgrep)
+
+SCA (Snyk, Dependabot)
+
+Secret Scanning (Gitleaks)
+
+Unit + Security tests
+
+🔧 Sample GitHub Actions Workflow
+name: CI-Security
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build Project
+      run: mvn clean package -DskipTests
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: java
+
+    - name: Run CodeQL
+      uses: github/codeql-action/analyze@v3
+
+    - name: Gitleaks Secret Scan
+      uses: zricethezav/gitleaks-action@v2
+
+    - name: Snyk Dependency Scan
+      uses: snyk/actions/maven@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+## 4. Artifact Hardening (Containers + Signing)
+🔐 Security Must-Haves
+
+Non-root containers
+
+Multi-stage Docker builds
+
+Container vulnerability scanning (Trivy/Grype)
+
+Signing artifacts (Cosign/Sigstore)
+
+🐳 Example Dockerfile
+FROM maven:3.9 AS builder
+WORKDIR /build
+COPY . .
+RUN mvn package
+
+FROM eclipse-temurin:17
+USER 1000
+COPY --from=builder /build/target/app.jar /app.jar
+ENTRYPOINT ["java", "-jar", "/app.jar"]
+
+🔍 Trivy Scan Step
+- name: Trivy Scan
+  uses: aquasecurity/trivy-action@master
+
+## 5. CD Deployment Security
+🛡️ Controls in Delivery Pipeline
+
+IaC scanning (Terraform/Helm) using Checkov
+
+GitHub OIDC → Secrets from Vault (no static secrets)
+
+Policy-as-Code (OPA/Gatekeeper)
+
+Deployment gates based on severity thresholds
+
+✔️ Checkov Example
+- name: IaC Scan
+  uses: bridgecrewio/checkov-action@master
+
+## 6. Runtime Security (Kubernetes / VM)
+🔐 Core Controls
+
+Admission controllers:
+
+No root users
+
+Read-only filesystem
+
+Approved images only
+
+mTLS between services (Istio/Linkerd)
+
+Runtime threat detection (Falco)
+
+🛡️ Example Falco Rules
+Detect reverse shell:
+  - container running 'bash -i'
+  - unexpected outbound traffic
+
+## 7. Monitoring, Alerting, and Continuous Feedback
+📈 Continuous Monitoring
+
+Application logs → Elastic, Splunk, Loki
+
+GitHub audit logs
+
+Cloud provider audit logs (GCP/AWS)
+
+Kubernetes audit logs
+
+🚨 Alerts to Configure
+
+Excessive failed logins
+
+New high-severity CVEs in dependencies
+
+Unauthorized GitHub PAT creation
+
+Drift in container image hash
+
+Unexpected network egress
+
+## 8. Text-Based DevSecOps Pipeline (ASCII Diagram)
+ ┌─────────────────────────────┐
+ │        Developer IDE         │
+ │  - Pre-commit hooks          │
+ │  - Secrets scan              │
+ │  - SAST in IDE               │
+ └──────────────┬──────────────┘
+                │ git push
+ ┌──────────────▼──────────────┐
+ │        GitHub Repo           │
+ │  - Branch protection         │
+ │  - Dependabot                │
+ │  - Secret scanning           │
+ │  - Commit signing            │
+ └──────────────┬──────────────┘
+         Triggers GitHub Actions
+ ┌──────────────▼──────────────┐
+ │         CI Pipeline          │
+ │  - Build                     │
+ │  - SAST (CodeQL/Semgrep)     │
+ │  - SCA (Snyk/Dependabot)     │
+ │  - Secrets scan (Gitleaks)   │
+ │  - Tests                     │
+ └──────────────┬──────────────┘
+                │ artifact
+ ┌──────────────▼──────────────┐
+ │  Artifact Hardening          │
+ │  - Docker build              │
+ │  - Non-root container        │
+ │  - Trivy scan                │
+ │  - Cosign signing            │
+ └──────────────┬──────────────┘
+                │ deploy
+ ┌──────────────▼──────────────┐
+ │     CD / Deployment          │
+ │  - IaC scan (Checkov)        │
+ │  - OPA/Gatekeeper policies   │
+ │  - Vault secret injection    │
+ │  - ArgoCD / GitOps           │
+ └──────────────┬──────────────┘
+                │ running
+ ┌──────────────▼──────────────┐
+ │     Runtime Security         │
+ │  - Falco                     │
+ │  - Network policies          │
+ │  - Pod Security Standards    │
+ │  - mTLS                      │
+ └──────────────┬──────────────┘
+                │ telemetry
+ ┌──────────────▼──────────────┐
+ │   Monitoring & Feedback      │
+ │  - SIEM alerts               │
+ │  - GitHub audit logs         │
+ │  - Metrics (Prometheus)      │
+ │  - Threat modeling updates   │
+ └──────────────────────────────┘
