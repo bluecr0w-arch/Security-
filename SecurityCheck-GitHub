@@ -1,0 +1,160 @@
+# 📘 GitHub Security Standard v1.0
+
+**Version:** 1.0  
+**Applicable To:** All engineering teams using GitHub for development, CI/CD, automation, and package publishing  
+**Scope:**  
+- Code repositories  
+- GitHub Actions CI/CD  
+- Developers, maintainers, service accounts  
+- Integrations, npm publishing, build pipelines  
+
+---
+
+## 🎯 Objective
+Establish security controls to protect source code, secrets, CI/CD pipelines, and software supply chain from compromise, unauthorized access, data exfiltration, and malicious dependency attacks.
+
+---
+
+## 🔐 1. Authentication: SSO & Mandatory 2FA
+
+| Requirement | Standard |
+|-------------|----------|
+| User authentication | All users must authenticate using the approved corporate IdP via Single Sign-On (SSO). |
+| MFA enforcement | Multi-Factor Authentication (2FA) is mandatory for all GitHub users, including contractors. |
+| Account removal | Offboarding must disable GitHub access within **4 hours** of HR exit notification. |
+
+---
+
+## 🔑 2. Access Authorization & Least Privilege
+
+| Requirement | Standard |
+|-------------|----------|
+| Role permissions | Access is granted via **Teams**, not individual accounts. |
+| Repo privileges | Default access = **Read** only; Write/Maintain/Admin only by justification. |
+| Admin restriction | Admin role restricted to ≤ **3 enterprise users**. |
+| External collaborators | Must be approved by Security + expire automatically in **90 days** unless renewed. |
+
+---
+
+## 🔐 3. Credential & Token Security
+
+| Requirement | Standard |
+|-------------|----------|
+| PAT usage | Only **fine-grained PATs** allowed; classic PATs are prohibited. |
+| Token lifetime | Max lifetime **≤ 7 days** for tokens used by humans or CI/CD. |
+| Preferred identity | Use **OIDC or GitHub Apps** for automation, not PATs. |
+| Token review | Quarterly review of tokens with alerting for unused or excessive scope keys. |
+
+---
+
+## 🌐 4. Cloud & External Service Integration
+
+| Requirement | Standard |
+|-------------|----------|
+| Static cloud keys | **Prohibited** in GitHub secrets. |
+| Authentication | All cloud access must use **OIDC federated identities** (AWS/IAM, GCP Workload Identity, Azure Federated Credentials). |
+| Workload scope | Permissions must be scoped to: **Org + Repo + Branch + Environment**. |
+
+---
+
+## 🔒 5. Branch Protection & Code Review
+
+| Requirement | Standard |
+|-------------|----------|
+| Protected branches | `main`, `master`, `release/*`, and production branches must be protected. |
+| PR enforcement | Direct commits and force pushes prohibited. |
+| Reviews | Minimum **1–2 peer reviews** for merge. |
+| Status checks | All security checks (SAST, SCA, Secrets, IaC) must pass before merging. |
+| Update policy | Branch must be up to date with target before merge. |
+
+---
+
+## ⚙️ 6. GitHub Actions Security
+
+| Requirement | Standard |
+|-------------|----------|
+| Workflow ownership | All `.github/workflows/*` changes require **CODEOWNERS approval** from Security/DevOps. |
+| Token permissions | Workflows must explicitly define `permissions:` and use **least privilege**. |
+| Deployment approvals | Production deployments require **protected environments + human approval**. |
+| Runner hardening | Self-hosted runners must have OS hardening, network isolation, and no shared credentials. |
+
+---
+
+## 📦 7. Supply-Chain Security (npm & All Dependencies)
+
+| Requirement | Standard |
+|-------------|----------|
+| Dependency lockfiles | Required (`package-lock.json`, `yarn.lock`, etc.). |
+| Installation | CI must use: `npm ci --ignore-scripts`. |
+| Install scripts | `preinstall`, `postinstall`, `install` scripts banned unless explicitly approved. |
+| Package source | Default **private/vetted registry**; direct internet npm access restricted. |
+| Dependency scanning | Every PR must pass **Software Composition Analysis (SCA)** via OSV, Dependabot, or equivalent. |
+
+---
+
+## 🔑 8. Secret & Sensitive Data Protection
+
+| Requirement | Standard |
+|-------------|----------|
+| Secrets in source | **Prohibited** in code or documentation. |
+| Secret scanning | Org-level Secret Scanning + Push Protection must be enabled. |
+| Storage | Secrets only allowed in GitHub Encrypted Secrets or approved Vaults. |
+| Pre-commit enforcement | Dev machines must use secrets linting (`detect-secrets`, `gitleaks`). |
+
+---
+
+## 👁️ 9. Monitoring, Logging & Alerting
+
+| Requirement | Standard |
+|-------------|----------|
+| Audit log forwarding | Must forward GitHub audit logs to SIEM (Splunk, Sentinel, Elastic, etc.). |
+| Alerting | Alerts required for:  
+- Repo creation/modification  
+- Workflow file edits  
+- Branch protection changes  
+- Secret scanning detections  
+- App/token authorization events |
+| Incident response | All GitHub incidents follow corporate IR process with **24-hr reporting SLA**. |
+
+---
+
+## 🔍 10. Continuous Compliance & Review
+
+| Requirement | Standard |
+|-------------|----------|
+| Quarterly access reviews | Admins, tokens, external collaborators. |
+| Annual workflow audit | CI/CD, runners, secret storage, dependency risk. |
+| Policy updates | Reviewed annually by Security Leadership. |
+| Non-compliance | May result in repo lockdown until remediation. |
+
+---
+
+## 📄 Appendices
+
+### 📌 A. Enforcement Priorities
+
+| Priority | Controls |
+|----------|----------|
+| **P1 (Immediate)** | 2FA, PAT ban, branch protection, CODEOWNERS for workflows |
+| **P2 (30 Days)** | OIDC migration, dependency enforcement, secret scanning |
+| **P3 (Quarterly)** | Monitoring alerts, registry hardening, runner isolation |
+
+---
+
+### 📌 B. Approved Tools List
+
+| Function | Tools |
+|----------|-------|
+| SAST | GitHub CodeQL, Semgrep |
+| SCA | Dependabot, OSV Scanner, Trivy |
+| Secret Scanning | GitHub Advanced Security, Gitleaks |
+| IaC Scanning | Checkov, Terrascan |
+| Container Scanning | Trivy, Grype |
+
+---
+
+### 📌 C. Sample Enforcement Language
+
+> Failure to comply with this policy may result in revocation of repository access, revocation of administrative privileges, or temporary lockdown of impacted repositories until remediation is completed.
+
+---
