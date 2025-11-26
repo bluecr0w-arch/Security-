@@ -1,0 +1,172 @@
+# 📘 Azure DevOps Security Standard v1.0
+
+**Version:** 1.0  
+**Applicable To:** Engineering teams using Azure DevOps (ADO) for source control, CI/CD, automation, artifact hosting, npm publishing.  
+
+**Scope:**  
+- Azure DevOps Repos  
+- Pipelines (YAML + Classic)  
+- Artifacts (npm/nuget/maven/pip)  
+- Service Connections  
+- Build Agents / Runners  
+- Users, Groups, Identities  
+
+---
+
+## 🎯 Objective
+
+Protect source code, pipelines, cloud credentials, artifacts, and the software supply chain from unauthorized access, secret leakage, malicious dependencies, data exfiltration, and build manipulation.
+
+---
+
+## 🔐 1. Authentication: Enforce SSO + MFA
+
+| Requirement | Standard |
+|-------------|----------|
+| Identity provider | All users must authenticate using corporate IdP (Entra ID/SSO). |
+| MFA enforcement | Mandatory MFA/2FA for all accounts. |
+| Local Microsoft accounts | **Prohibited** — only corporate identities are allowed. |
+| Offboarding | Access removal within **4 hours** of HR notification. |
+
+---
+
+## 🔑 2. Role-Based Access Control (RBAC) & Team Permissions
+
+| Requirement | Standard |
+|-------------|----------|
+| Team-based access | Permissions assigned via **Azure AD groups**, not individual users. |
+| Repo access | Default = **Read**; Write/Contribute requires justification. |
+| Project Administrators | Restricted to **≤ 3 named enterprise admins**. |
+| Guest users | Must have justification + auto-expiration every **90 days**. |
+
+---
+
+## 🔐 3. PAT, Access Token & Credential Security
+
+| Requirement | Standard |
+|-------------|----------|
+| PAT usage | Only allowed when ADO App or Managed Identity cannot be used. |
+| PAT lifetime | **≤ 7 days** and scoped minimally (e.g., `code:read`). |
+| Preferred identity | Use Managed Identities & Service Principals, not PATs. |
+| Key rotation | Quarterly review of PATs, OAuth Apps, & Service Principals. |
+| Credential storage | Secrets must be stored in **ADO Variable Library (Secret)** or **Azure Key Vault**. |
+
+---
+
+## 🌐 4. Pipeline → Cloud Access via Managed Identities (No Static Keys)
+
+| Requirement | Standard |
+|-------------|----------|
+| Static cloud keys | **Prohibited** in ADO variables & pipeline YAML. |
+| Authentication | Use **Federated Workload Identity + OIDC** for Azure, AWS, GCP. |
+| Scope | Permissions must match: **Project + Pipeline + Environment + Resource**. |
+| Rotation | Service Connections reviewed quarterly. |
+
+---
+
+## 🔒 5. Branch Policies & Code Review Enforcement
+
+| Requirement | Standard |
+|-------------|----------|
+| Mandatory branch policies | `main`, `master`, `release/*`, & production branches. |
+| Direct pushes | **Forbidden** — only PR merges allowed. |
+| Force pushes | **Disabled** by policy. |
+| Approvals | Min **1–2 reviewers**; code owner must review critical repos. |
+| Build validation | All builds must pass mandatory checks prior to merge. |
+| Up-to-date requirement | PR source must be updated before merge completion. |
+
+---
+
+## ⚙️ 6. Secure Azure Pipelines (Build Agents, Permissions & Controls)
+
+| Requirement | Standard |
+|-------------|----------|
+| Pipeline definition | **YAML pipelines required**; Classic builds deprecated except by exception. |
+| Approval gates | Production deployments require **Environment protection + manual approvers**. |
+| OAuth token | `Allow scripts to access OAuth token` must be disabled unless required. |
+| Self-hosted agents | Must be hardened, isolated network, no shared accounts, rotating access. |
+| Hosted agents | Allowed only for non-production workloads. |
+
+---
+
+## 📦 7. Supply Chain Security (npm/nuget/maven/pip Dependencies)
+
+| Requirement | Standard |
+|-------------|----------|
+| Registry source | Only **ADO Artifacts or approved private registries**. No direct internet npm/pip/nuget pulls. |
+| Lockfiles | Required (`package-lock.json`, `requirements.txt`, `pom.lock`, etc.). |
+| Install flow | Pipelines must use: `npm ci --ignore-scripts` |
+| Install scripts | `preinstall`, `postinstall`, `install` actions must be approved before use. |
+| Dependency scanning | PRs must pass SCA checks (Snyk, Mend, XRay, Defender for DevOps, etc.). |
+| Artifact signing | Required for internal packages starting FY2026. |
+
+---
+
+## 🔑 8. Secret & Sensitive Data Protection
+
+| Requirement | Standard |
+|-------------|----------|
+| Secret leakage | **Prohibited** in code, YAML, logs, or config. |
+| Secret scanning | Mandatory via Security tools or ADO Pipelines + pre-commit hooks. |
+| Storage | Secrets must reside only in **Key Vault**; ADO Library must reference Key Vault. |
+| Variable permissions | Limit variable groups by environment, project, pipeline. |
+| Developer standards | Pre-commit hooking with `gitleaks` or `detect-secrets`. |
+
+---
+
+## 👁️ 9. Monitoring, Logging & Compliance
+
+| Requirement | Standard |
+|-------------|----------|
+| Audit logs | Must stream to SIEM (Sentinel, Splunk, Elastic, etc.). |
+| Mandatory alerts |  
+- Service connection creation/removal  
+- PAT usage alerts  
+- New repo creation  
+- Build agent registration  
+- Pipeline definition changes |
+| Incident response | ADO incidents must follow IR policy with **24-hour reporting SLA**. |
+| Exception logging | All exceptions must have documented justification + expiry date. |
+
+---
+
+## 🔍 10. Continuous Improvement & Review
+
+| Requirement | Standard |
+|-------------|----------|
+| Quarterly reviews | Permissions, PATs, Service Connections, guest accounts. |
+| Annual audit | Pipeline security, secret storage, registry enforcement, runner hardening. |
+| Policy updates | Reviewed annually by Security Leadership. |
+| Enforcement | Non-compliance may result in pipeline disablement or loss of admin privileges. |
+
+---
+
+## 📄 Appendices
+
+### 📌 A. Enforcement Priorities
+
+| Priority | Controls |
+|----------|----------|
+| **P1 (Immediate)** | SSO + MFA, PAT restrictions, branch policies, secret scanning |
+| **P2 (Within 30 Days)** | OIDC/Workload Identity, registry enforcement, hardened agents |
+| **P3 (Quarterly)** | Artifact signing, monitoring alerts, audit log forwarding |
+
+---
+
+### 📌 B. Approved Tools
+
+| Category | Approved Tools |
+|----------|----------------|
+| SAST | SonarQube, Semgrep, CodeQL |
+| SCA | Snyk, Mend, XRay, Defender for DevOps |
+| Secrets | MS Defender for DevOps, Gitleaks, Trufflehog |
+| IaC Scanning | Checkov, Terrascan, Defender for Cloud |
+| Container Security | Trivy, Grype, Defender CAC |
+
+---
+
+### 📌 C. Enforcement Language
+
+> Failure to comply with this Azure DevOps Security Standard may result in revocation of repository permissions, removal of administrative privileges, or suspension of affected pipelines until remediation is completed.
+
+---
