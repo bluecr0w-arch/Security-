@@ -1,0 +1,69 @@
+┌──────────────────────────────────────────────────────────────────────┐
+│                           DEVELOPER IDE (SHIFT-LEFT)                 │
+│                                                                      │
+│  Security baked into IDE:                                            │
+│   • Pre-commit hooks (Gitleaks, linting, formatting)                 │
+│   • IDE SAST plugins (SonarLint, Snyk)                               │
+│   • Local dependency checks (mvn dependency-check, npm audit)        │
+│   • Avoid secrets: OIDC to fetch tokens from Vault                   │
+│   • Secure coding templates / secure boilerplates                    │
+└───────────────┬──────────────────────────────────────────────────────┘
+                │ git push / PR
+                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                                  CI                                  │
+│                     (BUILD + TEST + SECURITY SCANS)                  │
+│                                                                      │
+│  Security in CI (automated gates):                                   │
+│   • Build (compile, package)                                         │
+│   • SAST (CodeQL, Semgrep, SonarQube)                                │
+│   • SCA (Snyk, Dependabot, OWASP DepCheck)                           │
+│   • Secret scanning (Gitleaks, GHAS)                                 │
+│   • IaC scanning of Terraform/Helm (Checkov)                         │
+│   • Unit tests / Security unit tests                                 │
+│   • Container build + scan (Trivy/Grype)                             │
+│   • SBOM generation (CycloneDX/Syft)                                 │
+│                                                                      │
+│     CI OUTPUT → Hardened artifact + security reports                 │
+└───────────────┬──────────────────────────────────────────────────────┘
+                │ push artifact → registry
+                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                                   CD                                 │
+│                (SECURE DEPLOYMENT + POLICY ENFORCEMENT)              │
+│                                                                      │
+│  Security in CD (pre-deploy & deploy-time):                          │
+│   • Artifact signing & verification (Cosign/Sigstore)                │
+│   • Policy-as-Code (OPA Gatekeeper / Kyverno) checks:                │
+│        - No root containers                                          │
+│        - Approved base images only                                   │
+│        - Mandatory resource limits                                   │
+│        - mTLS required                                               │
+│   • IaC drift detection                                              │
+│   • Secrets injection via Vault (NO static secrets)                  │
+│   • ArgoCD/GitOps enforcement (only signed manifests allowed)        │
+│   • Environment-based risk gates (Prod requires approvals)           │
+│                                                                      │
+│     CD OUTPUT → Secure, validated deployment to cluster/VM           │
+└───────────────┬──────────────────────────────────────────────────────┘
+                │ deployed workload
+                ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                           RUNTIME SECURITY                           │
+│                                                                      │
+│   • Admission controllers (PSA, Kyverno, Gatekeeper)                 │
+│   • Runtime detection (Falco, eBPF sensors)                          │
+│   • Network policies (Zero Trust, deny-by-default)                   │
+│   • Secrets from Vault/KMS, auto-rotated                             │
+│   • mTLS between all workloads                                       │
+│   • Continuous vulnerability monitoring (Trivy operator)             │
+│   • Logging + SIEM + anomaly detection                               │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+
+Stage	What Happens	Security Controls
+IDE	Code authoring	Pre-commit hooks, SAST plugins, dependency checks
+CI	Build + Test + Scan	SAST, SCA, secrets scan, IaC scan, container scan, SBOM
+CD	Deploy + enforce policies	Signing verification, OPA/Kyverno, Vault secrets, GitOps validation
+Runtime	Live protection	Falco, network policies, mTLS, audit logs, eBPF monitoring
